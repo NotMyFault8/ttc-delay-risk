@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools==75.3.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ttc-delay-risk"
+version = "0.1.0"
+description = "Auditable foundations for TTC bus delay risk prediction"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+ttc-risk = "ttc_delay_risk.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

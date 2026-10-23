@@ -1,0 +1,38 @@
+{
+  "source_hash": "1474f16414e63aaeab58714c236446ea370f5e00e072a3b97fdfeb1f079cd8fe",
+  "columns": [
+    "_id",
+    "Date",
+    "Line",
+    "Time",
+    "Day",
+    "Station",
+    "Code",
+    "Min Delay",
+    "Min Gap",
+    "Bound",
+    "Vehicle"
+  ],
+  "rows": 102257,
+  "valid_rows": 100547,
+  "quarantined_rows": 1710,
+  "blank_counts": {
+    "Bound": 21327,
+    "Line": 1241
+  },
+  "exact_duplicate_candidates": 298,
+  "duplicate_policy": "Retain all source rows; candidates are diagnostics only",
+  "date_min": "2025-01-01",
+  "date_max": "2026-08-31",
+  "routes": 266,
+  "quarantine_reasons": {
+    "invalid_route": 1708,
+    "ambiguous_or_nonexistent_local_time": 2
+  },
+  "training_ready": false,
+  "blocking_requirements": [
+    "Verified event coverage",
+    "Historical GTFS validity",
+    "Historical publication availability"
+  ]
+}

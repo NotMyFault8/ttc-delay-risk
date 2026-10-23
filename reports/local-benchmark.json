@@ -1,0 +1,8 @@
+{
+  "requests": 200,
+  "concurrency": 4,
+  "p50_ms": 2.917582984082401,
+  "p95_ms": 4.35695901978761,
+  "max_ms": 44.07674993854016,
+  "scope": "Local Docker PostgreSQL API, 12 synthetic prediction rows; not a production SLA"
+}

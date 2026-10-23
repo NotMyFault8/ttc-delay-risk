@@ -3,6 +3,7 @@
 Source rows retain their lineage. Ambiguous local timestamps are quarantined,
 not silently assigned to a daylight-saving fold. No negative labels are inferred.
 """
+
 import csv
 import hashlib
 import io
@@ -38,7 +39,7 @@ def fetch(url, attempts=3):
         except (OSError, TimeoutError):
             if attempt == attempts - 1:
                 raise
-            time.sleep(2 ** attempt)
+            time.sleep(2**attempt)
 
 
 def archive(payload, source_url, root):
@@ -54,12 +55,18 @@ def archive(payload, source_url, root):
     now = datetime.now(timezone.utc).isoformat()
     manifest = folder / "manifest.json"
     if not manifest.exists():
-        atomic_json(manifest, {
-            "source_url": source_url, "content_hash": digest,
-            "first_seen_at": now, "retrieved_at": now,
-            "bytes": len(payload), "historical_available_at": None,
-            "parser_version": "csv-2025-v1",
-        })
+        atomic_json(
+            manifest,
+            {
+                "source_url": source_url,
+                "content_hash": digest,
+                "first_seen_at": now,
+                "retrieved_at": now,
+                "bytes": len(payload),
+                "historical_available_at": None,
+                "parser_version": "csv-2025-v1",
+            },
+        )
     return digest
 
 
@@ -86,10 +93,14 @@ def normalize(row, row_number, source_hash):
     if not row["Code"].strip():
         raise ValueError("missing_code")
     return {
-        "route_id": str(int(match[1])), "event_time": timestamp.isoformat(),
-        "business_date": row["Date"][:10], "code": row["Code"],
-        "delay_minutes": delay, "source_hash": source_hash,
-        "source_row": row_number, "available_at": None,
+        "route_id": str(int(match[1])),
+        "event_time": timestamp.isoformat(),
+        "business_date": row["Date"][:10],
+        "code": row["Code"],
+        "delay_minutes": delay,
+        "source_hash": source_hash,
+        "source_row": row_number,
+        "available_at": None,
     }
 
 
@@ -98,7 +109,9 @@ def audit(payload, source_hash):
     columns = reader.fieldnames or []
     missing = REQUIRED - set(columns)
     if missing:
-        raise ValueError("Schema missing required fields: " + ", ".join(sorted(missing)))
+        raise ValueError(
+            "Schema missing required fields: " + ", ".join(sorted(missing))
+        )
     valid, quarantine = [], []
     blank = Counter()
     signatures = Counter()
@@ -115,24 +128,38 @@ def audit(payload, source_hash):
             quarantine.append({"source_row": number, "reason": str(error), "raw": row})
     dates = [row["business_date"] for row in valid]
     report = {
-        "source_hash": source_hash, "columns": columns,
-        "rows": len(valid) + len(quarantine), "valid_rows": len(valid),
-        "quarantined_rows": len(quarantine), "blank_counts": dict(blank),
+        "source_hash": source_hash,
+        "columns": columns,
+        "rows": len(valid) + len(quarantine),
+        "valid_rows": len(valid),
+        "quarantined_rows": len(quarantine),
+        "blank_counts": dict(blank),
         "exact_duplicate_candidates": sum(count - 1 for count in signatures.values()),
         "duplicate_policy": "Retain all source rows; candidates are diagnostics only",
-        "date_min": min(dates, default=None), "date_max": max(dates, default=None),
+        "date_min": min(dates, default=None),
+        "date_max": max(dates, default=None),
         "routes": len({row["route_id"] for row in valid}),
         "quarantine_reasons": dict(Counter(row["reason"] for row in quarantine)),
         "training_ready": False,
-        "blocking_requirements": ["Verified event coverage", "Historical GTFS validity",
-                                  "Historical publication availability"],
+        "blocking_requirements": [
+            "Verified event coverage",
+            "Historical GTFS validity",
+            "Historical publication availability",
+        ],
     }
     return report, valid, quarantine
 
 
 def require_training_evidence(coverage, schedule, availability):
     """Fail closed until explicitly reviewed source evidence is supplied."""
-    for name, evidence in (("coverage", coverage), ("schedule", schedule),
-                           ("availability", availability)):
-        if not evidence or not evidence.get("verified") or not evidence.get("reference"):
+    for name, evidence in (
+        ("coverage", coverage),
+        ("schedule", schedule),
+        ("availability", availability),
+    ):
+        if (
+            not evidence
+            or not evidence.get("verified")
+            or not evidence.get("reference")
+        ):
             raise ValueError("Training blocked: missing verified " + name)

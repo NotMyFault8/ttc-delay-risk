@@ -1,0 +1,7 @@
+[Unit]
+Description=Publish daily TTC risk before 04:00 Toronto
+[Timer]
+OnCalendar=*-*-* 03:30:00 America/Toronto
+Persistent=true
+[Install]
+WantedBy=timers.target

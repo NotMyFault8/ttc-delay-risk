@@ -1,26 +1,27 @@
-# Engineering decisions and milestones
+# Engineering decisions
 
-## Implemented foundation
+## Time and labels
 
-The small standard-library implementation keeps data semantics inspectable before introducing orchestration and database services. `archive` stores immutable source bytes keyed by SHA-256. Reports and normalized outputs are namespaced by source hash, so revisions cannot replace an earlier snapshot. Writes use temporary files and rename. Run one writer per output directory; concurrent writers and multi-file transactional publication are not implemented.
+The prediction unit is route × local operating date × hour, published at 04:00 Toronto for later windows. UTC window starts distinguish repeated local hours. GTFS uses service-day noon minus twelve hours and supports times beyond 24:00, following the [official specification](https://gtfs.org/documentation/schedule/reference/). Calendar exceptions override weekly service. Both the preceding and current service date are considered when building an operating day.
 
-The first-observation manifest is stable on repeat ingestion. It is not a full retrieval history or historical release record. A revised file creates a new partition; there is no current-version pointer yet. Schema failures retain Bronze inputs and raise an error without producing Silver outputs. Unknown fields remain in Bronze; required missing fields stop processing. Output JSON is intended for this modest snapshot size, not unbounded streams.
+A reviewed coverage ledger controls labels. Unknown coverage yields null labels. Event-start membership is half-open: start <= event < end. The dataset builder requires an explicit incident-code allowlist. Scheduled trip counts represent trips intersecting an hour, not passenger exposure or ridership.
 
-## Verification
+## Leakage control
 
-Seven unit tests cover identical ingestion, revised input retention, DST fall-back and spring-forward boundaries, midnight conversion, duplicate retention, invalid-value quarantine, schema rejection and training evidence rejection. The real-source audit also ran successfully. CI is configured for Python 3.10 and 3.12. Container execution, network-failure injection, deployment and API latency are not yet verified.
+Training and inference call the same feature builder. A chronological sweep admits each label only after both its event window ends and its availability timestamp is reached. Schedule publication must precede prediction time. Model fitting also excludes labels unavailable at each fold's starting cutoff. Scalers are fitted only on training rows. A model cannot score dates within its training period through the batch prediction entry point.
 
-## Recovery
+Features are hour sine/cosine, weekday, month, scheduled trips, smoothed route frequency, smoothed route-hour frequency and history size. No incident cause or realized duration is used. Holidays and weather are intentionally absent. Unknown routes inherit the smoothed global prior and receive degraded status.
 
-Re-run the same command after an interruption. The source hash determines the partition and completed JSON outputs are atomically replaced. Preserve Bronze; generated Silver outputs can be regenerated. For a source schema change, retain the rejected bytes, update a versioned adapter and add a regression fixture before retrying. Do not manually modify archived source bytes.
+## Model selection
 
-## Remaining implementation
+Three expanding temporal folds use 40–50%, 50–60% and 60–80% of service dates for validation. The last 20% is the final test. Candidates are a smoothed historical-frequency baseline, standardized logistic regression and CatBoost. Choose minimum validation Brier subject to AP at least the baseline and no route Brier regression greater than 0.05 for groups with at least 20 validation rows. Otherwise retain baseline. Daily attention budget K=5 is fixed in advance; risk thresholds are validation probability quantiles, not operationally calibrated intervention thresholds.
 
-1. **Evidence:** archived GTFS, service validity and publication/coverage ledger; inspect code taxonomy and route mappings.
-2. **Gold:** GTFS service dates including times beyond 24:00, UTC windows across DST, unknown labels, mature-label availability and partitioned snapshots.
-3. **Features:** one shared training/inference implementation; point-in-time historical counts; calendar and scheduled service features.
-4. **Evaluation:** smoothed frequency, logistic regression, LightGBM or CatBoost; temporal folds; Average Precision, daily Precision/Recall@K, Brier and group errors. Select K and thresholds on validation only.
-5. **Serving:** versioned model registry, explicit release gate and rollback; PostgreSQL atomic batch publication; FastAPI health, readiness, predictions, ranking and model metadata.
-6. **Operations:** retries and run ledger, Airflow/dbt where justified, degradation and freshness checks, Docker integration tests, deployment configuration and 14-day operation record.
+Registry versions include data and source-code hashes. Reports retain dependencies, seed, feature names, windows, metrics and thresholds. The artifacts are Python pickle files from local training only: never load untrusted uploads. SHA-256 detects accidental corruption, not malicious replacement by someone with filesystem write access.
 
-A planned component is not an implemented capability. Do not describe the project as production-ready until these acceptance gates have measured evidence.
+## Reliability and scope
+
+Source snapshots are content-addressed and immutable. Repeated batch payloads share an ID. A transaction inserts a staged batch and optionally changes the current-date pointers; readers cannot observe a partially activated batch. Revisions create new snapshots. Explicit publication can replace a date's current batch, while older batches remain retained.
+
+Run one publisher per database/date and one writer per artifact directory. This is a single-node research deployment; concurrent writers, distributed leases, database migrations and high-availability failover are not implemented. PostgreSQL and SQLite share the same SQLAlchemy repository interface. JSON batch payloads keep the prototype small; a normalized indexed prediction table is a next step for larger workloads.
+
+Python replaces dbt for the current transformation scope; a systemd timer replaces Airflow; the local registry replaces MLflow. These are deliberate scope choices, not claims that those named tools are present. No Terraform/cloud resources are provisioned.

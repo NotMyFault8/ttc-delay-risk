@@ -4,13 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ttc-delay-risk"
-version = "0.1.0"
+version = "0.2.0"
 description = "Auditable foundations for TTC bus delay risk prediction"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = ["numpy==1.26.4", "scikit-learn==1.7.2", "catboost==1.2.8", "fastapi==0.119.1", "uvicorn==0.38.0", "sqlalchemy==2.0.44", "psycopg2-binary==2.9.11"]
 
 [project.scripts]
 ttc-risk = "ttc_delay_risk.cli:main"
+ttc-pipeline = "ttc_delay_risk.run:main"
+ttc-dataset = "ttc_delay_risk.dataset:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -1,0 +1,34 @@
+services:
+  db:
+    image: postgres:16.6
+    environment:
+      POSTGRES_DB: ttc
+      POSTGRES_USER: ttc
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U ttc -d ttc']
+      interval: 5s
+      retries: 12
+  api:
+    build: .
+    entrypoint: [uvicorn, ttc_delay_risk.api:create_app, --factory, --host, 0.0.0.0, --port, '8000']
+    environment:
+      DATABASE_URL: postgresql+psycopg2://ttc:${POSTGRES_PASSWORD}@db:5432/ttc
+    ports: ['127.0.0.1:8000:8000']
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes: ['./data:/app/data']
+  demo:
+    build: .
+    profiles: [demo]
+    entrypoint: [ttc-pipeline, demo, --root, /app/data/demo]
+    command: [--database-url, 'postgresql+psycopg2://ttc:${POSTGRES_PASSWORD}@db:5432/ttc']
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes: ['./data:/app/data']
+volumes:
+  postgres:

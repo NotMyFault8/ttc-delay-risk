@@ -11,5 +11,27 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-      - run: python -m pip install .
-      - run: python -m unittest discover -s tests -v
+      - run: python -m pip install -r requirements.lock
+      - run: python -m pip install --no-deps .
+      - run: python -W error::RuntimeWarning -m unittest discover -s tests -v
+      - run: ttc-pipeline demo --root data/ci-demo
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16.6
+        env:
+          POSTGRES_DB: ttc
+          POSTGRES_USER: ttc
+          POSTGRES_PASSWORD: ci-only-password
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U ttc -d ttc" --health-interval 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements.lock && python -m pip install --no-deps .
+      - run: ttc-pipeline demo --root data/ci-postgres
+        env:
+          DATABASE_URL: postgresql+psycopg2://ttc:ci-only-password@localhost:5432/ttc

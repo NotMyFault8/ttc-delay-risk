@@ -1,0 +1,11 @@
+[Unit]
+Description=TTC daily batch prediction
+After=network-online.target
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/ttc-delay-risk
+EnvironmentFile=/opt/ttc-delay-risk/.env
+ExecStart=/bin/sh -c '.venv/bin/ttc-pipeline predict --dataset data/production-windows.json --date "$(TZ=America/Toronto date +%%F)" --publish'
+User=ttc
+NoNewPrivileges=true
+PrivateTmp=true

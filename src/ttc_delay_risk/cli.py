@@ -1,4 +1,5 @@
 """Audit local or remote source snapshots without modifying previous versions."""
+
 import argparse
 import json
 from pathlib import Path

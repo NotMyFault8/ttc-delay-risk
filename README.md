@@ -46,7 +46,7 @@ The API binds to localhost. PostgreSQL stays on the private Compose network. Mod
 | Registry | Code/data hashes, dependencies, seed, metrics, versioned artifacts, manual release and rollback |
 | Batch serving | Idempotent staged batches, transactional publication, baseline fallback and explicit status |
 | API | Health, readiness, paginated predictions, risk ranking, model version and compact dashboard |
-| Operations | Run ledger, Docker/PostgreSQL, daily timer template, CI and recovery tests |
+| Operations | Run ledger, Docker/PostgreSQL, production Airflow DAG, CI and recovery tests |
 
 ## Architecture
 
@@ -94,7 +94,7 @@ The evidence file is a manual research attestation, not an automatic proof. Do n
 - No event record means **no recorded event**, not proof of punctual vehicles.
 - Historic features use only labels available at the prediction cutoff.
 - Current GTFS cannot establish historical service; missing coverage leaves labels unknown.
-- The implementation uses Python transformations, SQLAlchemy and a systemd timer to keep a single-machine deployment small. Airflow, dbt, MLflow and cloud infrastructure are not implemented.
+- The implementation includes an Airflow DAG and local Airflow deployment for daily publication; the systemd timer remains a small single-machine alternative. dbt, MLflow and cloud infrastructure are not implemented.
 - Frequency-based GTFS requires explicit expansion and is rejected. Legacy Excel files require a separate parser.
 - Cloud deployment, real-data model validation, a 14-day operating record and cloud cost measurement remain outstanding. No SLA or operational business improvement is claimed.
 

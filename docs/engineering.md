@@ -24,4 +24,4 @@ Source snapshots are content-addressed and immutable. Repeated batch payloads sh
 
 Run one publisher per database/date and one writer per artifact directory. This is a single-node research deployment; concurrent writers, distributed leases, database migrations and high-availability failover are not implemented. PostgreSQL and SQLite share the same SQLAlchemy repository interface. JSON batch payloads keep the prototype small; a normalized indexed prediction table is a next step for larger workloads.
 
-Python replaces dbt for the current transformation scope; a systemd timer replaces Airflow; the local registry replaces MLflow. These are deliberate scope choices, not claims that those named tools are present. No Terraform/cloud resources are provisioned.
+Python replaces dbt for the current transformation scope; Airflow orchestrates the existing idempotent CLI rather than duplicating domain logic; the local registry replaces MLflow. A systemd timer remains available for minimal single-machine installs. No Terraform/cloud resources are provisioned.

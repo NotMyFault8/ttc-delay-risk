@@ -10,7 +10,8 @@ from airflow.operators.bash import BashOperator
 PROJECT_ROOT = "/opt/ttc-delay-risk"
 TORONTO = ZoneInfo("America/Toronto")
 TARGET_DATE = (
-    "{{ data_interval_end.in_timezone('America/Toronto').strftime('%Y-%m-%d') }}"
+    "{{ (dag_run.logical_date if dag_run.external_trigger else "
+    "data_interval_end).in_timezone('America/Toronto').strftime('%Y-%m-%d') }}"
 )
 
 default_args = {

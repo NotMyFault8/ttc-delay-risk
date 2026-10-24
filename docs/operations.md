@@ -46,16 +46,16 @@ Backfills must use a model trained before their earliest target date. Recompute 
 
 ## Scheduling and monitoring
 
-The production DAG at `airflow/dags/ttc_delay_risk_daily.py` runs at 03:30 America/Toronto, checks the executable, dataset, release pointer and database configuration, then atomically publishes that Toronto service date. It disables catchup and limits concurrency to one active run; historical dates can be run explicitly with an Airflow logical date. The CLI run ledger remains the system of record for the batch result.
+The production DAG at `airflow/dags/ttc_delay_risk_daily.py` runs at 03:30 America/Toronto, checks the executable, dataset, release pointer and database configuration, then atomically publishes that Toronto service date. It disables catchup and limits concurrency to one active run. For a manual historical run, set its Airflow logical date to midnight Toronto time on the desired service date; the DAG reads that logical date directly instead of the inferred interval end. The CLI run ledger remains the system of record for the batch result.
 
-For a local deployment, set both passwords in `.env`, place the reviewed rolling dataset at `data/production-windows.json`, and release a real model before starting Airflow:
+For a local deployment, set the passwords and generate one long random `AIRFLOW_WEBSERVER_SECRET_KEY` in `.env`; the same key is shared by the webserver and scheduler so task logs can be retrieved. Place the reviewed rolling dataset at `data/production-windows.json` and release a real model before starting Airflow:
 
 ```sh
 docker compose -f compose.yaml -f compose.airflow.yaml up airflow-init
 docker compose -f compose.yaml -f compose.airflow.yaml up -d airflow-webserver airflow-scheduler api
 ```
 
-The Airflow UI binds to `127.0.0.1:8080`. Create the first UI user with the Airflow CLI; credentials are never committed. Worker processes receive the prediction database URL through the environment. The DAG uses Airflow's data interval in `America/Toronto`, including DST transitions, rather than the container clock.
+The Airflow UI binds to `127.0.0.1:8080`. Create the first UI user with the Airflow CLI; credentials are never committed. Worker processes receive the prediction database URL through the environment. Scheduled runs use Airflow's data interval in `America/Toronto`, including DST transitions, rather than the container clock.
 
 The templates under `deploy/` remain a lightweight systemd alternative. Before installing them, create the service user, install the project in `/opt/ttc-delay-risk`, supply the reviewed rolling dataset and release a real model. Neither scheduler fetches new coverage evidence automatically.
 

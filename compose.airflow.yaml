@@ -1,0 +1,66 @@
+x-airflow-common: &airflow-common
+  build:
+    context: .
+    dockerfile: airflow/Dockerfile
+  environment: &airflow-environment
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${AIRFLOW_POSTGRES_PASSWORD:?Set AIRFLOW_POSTGRES_PASSWORD in .env}@airflow-db:5432/airflow
+    DATABASE_URL: postgresql+psycopg2://ttc:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/ttc
+    TTC_PROJECT_ROOT: /opt/ttc-delay-risk
+    TTC_DATA_ROOT: /opt/ttc-delay-risk/data
+    TTC_DATASET: /opt/ttc-delay-risk/data/production-windows.json
+  volumes:
+    - ./data:/opt/ttc-delay-risk/data
+  depends_on:
+    airflow-db:
+      condition: service_healthy
+    db:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  airflow-db:
+    image: postgres:16.6
+    environment:
+      POSTGRES_DB: airflow
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: ${AIRFLOW_POSTGRES_PASSWORD:?Set AIRFLOW_POSTGRES_PASSWORD in .env}
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U airflow -d airflow"]
+      interval: 5s
+      retries: 12
+    volumes:
+      - airflow-postgres:/var/lib/postgresql/data
+
+  airflow-init:
+    <<: *airflow-common
+    restart: "no"
+    command: db migrate
+
+  airflow-webserver:
+    <<: *airflow-common
+    command: webserver
+    ports: ["127.0.0.1:8080:8080"]
+    depends_on:
+      airflow-db:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    depends_on:
+      airflow-db:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+
+volumes:
+  airflow-postgres:
+

@@ -1,5 +1,7 @@
 # Engineering decisions
 
+The primary real-data model now estimates incident-conditional severity; see [its contract and evaluation](severity-model.md). The service-window and availability contracts below describe the retained legacy occurrence-risk workflow, not the new incident-level labels.
+
 ## Time and labels
 
 The prediction unit is route × local operating date × hour, published at 04:00 Toronto for later windows. UTC window starts distinguish repeated local hours. GTFS uses service-day noon minus twelve hours and supports times beyond 24:00, following the [official specification](https://gtfs.org/documentation/schedule/reference/). Calendar exceptions override weekly service. Both the preceding and current service date are considered when building an operating day.

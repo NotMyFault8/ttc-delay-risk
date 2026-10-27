@@ -1,12 +1,20 @@
 # TTC Delay Risk
 
-**A reproducible batch-ML system for route-hour recorded-event risk.**
+**A reproducible research model for TTC incident severity by route and hour.**
 
 [![checks](https://github.com/NotMyFault8/ttc-delay-risk/actions/workflows/ci.yml/badge.svg)](https://github.com/NotMyFault8/ttc-delay-risk/actions/workflows/ci.yml)
 
-Immutable ingestion → GTFS windows → point-in-time features → temporal model evaluation → versioned batch predictions → PostgreSQL and FastAPI.
+Current real-data target: the probability that a recorded TTC incident has `Min Delay >= 15`, conditional on route and local calendar. This is a probability **among incident records**, not the chance that a bus or service hour experiences a delay. The threshold is configurable.
 
-**Status:** runnable research prototype with a fully labelled synthetic demonstration and a separate audit of real TTC data. Real-world predictive validity remains unverified; demo probabilities are not TTC forecasts. This project is independent of TTC and the City of Toronto.
+**Status:** trained and retrospectively evaluated on real snapshots. Validation selected CatBoost using 2025+ records over candidates including 2023. Test ROC-AUC is 0.829; Brier is 0.1681 versus 0.1699 for the frequency baseline. Prospective validity remains unverified. [Model definition, results and commands](docs/severity-model.md) · [Evaluation JSON](reports/severity-evaluation.json). This project is independent of TTC and the City of Toronto.
+
+```sh
+python -m ttc_delay_risk.severity train --root data/severity \
+  --inputs /path/to/ttc-bus-delay-data-2023.xlsx.zip /path/to/current.csv
+python -m ttc_delay_risk.severity predict --root data/severity --date FUTURE-YYYY-MM-DD
+```
+
+The commands below document the **legacy service-hour incidence prototype**, including its synthetic dashboard. That target still requires historical schedules and coverage evidence. Conditional-severity outputs have their own artifact directory and JSON fields and are not served as incidence probabilities by that dashboard.
 
 ## Try it in five minutes
 
@@ -67,7 +75,7 @@ flowchart LR
 
 ## Evidence, not promises
 
-**Real-data audit:** 102,257 source rows; 100,547 normalized; 1,710 quarantined; 298 duplicate candidates retained. Events span 2025-01-01 through 2026-08-31. Parsed route IDs are not automatically verified bus services. [Source assessment](docs/data-assessment.md) · [Audit JSON](reports/source-audit.json).
+**Legacy ingestion audit:** `reports/source-audit.json` describes an earlier snapshot (102,257 rows, through 2026-08-31) used in the service-hour prototype. The conditional-severity model instead uses the source snapshots and row counts in [its model report](reports/severity-evaluation.json). Parsed route IDs are not automatically verified bus services. [Source assessment](docs/data-assessment.md).
 
 **Synthetic evaluation:** 2,184 windows across 182 days. The validation gate selected the historical-frequency baseline. The final test is preserved for all three candidates; no test-period result changes model selection. [Evaluation report](docs/evaluation.md) · [Detailed metrics](reports/demo-evaluation.json).
 
@@ -94,12 +102,14 @@ The evidence file is a manual research attestation, not an automatic proof. Do n
 - No event record means **no recorded event**, not proof of punctual vehicles.
 - Historic features use only labels available at the prediction cutoff.
 - Current GTFS cannot establish historical service; missing coverage leaves labels unknown.
-- The implementation uses Python transformations, SQLAlchemy and a systemd timer to keep a single-machine deployment small. Airflow, dbt, MLflow and cloud infrastructure are not implemented.
-- Frequency-based GTFS requires explicit expansion and is rejected. Legacy Excel files require a separate parser.
-- Cloud deployment, real-data model validation, a 14-day operating record and cloud cost measurement remain outstanding. No SLA or operational business improvement is claimed.
+- Python transformations, SQLAlchemy, a systemd timer template and a local Docker Airflow DAG are implemented. Airflow supports ingestion and explicit conditional-severity training/prediction operations. Its 03:30 Toronto scheduled runs default to ingestion.
+- Frequency-based GTFS requires explicit expansion and is rejected. The conditional-severity workflow reads historical XLSX and current CSV snapshots.
+- Cloud deployment, prospective real-data validation, a 14-day operating record and cloud cost measurement remain outstanding. No SLA or operational business improvement is claimed.
 
 ## Code map
 
 `pipeline.py` ingestion · `gtfs.py` calendars · `dataset.py` labels · `features.py` as-of statistics · `model.py` evaluation/registry · `run.py` batch commands · `store.py` transactions · `api.py` queries/dashboard.
+
+`severity_data.py` CSV/XLSX event preparation · `severity.py` conditional severity, cohort selection, temporal evaluation and future scenario scores.
 
 [Engineering decisions](docs/engineering.md) · [Data assessment](docs/data-assessment.md) · [Evaluation](docs/evaluation.md) · [Operations](docs/operations.md)

@@ -1,0 +1,12 @@
+FROM apache/airflow:3.1.5
+
+RUN python -m venv /home/airflow/ttc-venv
+
+COPY --chown=airflow:root requirements.lock /tmp/ttc-delay-risk/requirements.lock
+RUN /home/airflow/ttc-venv/bin/pip install --no-cache-dir -r /tmp/ttc-delay-risk/requirements.lock
+
+COPY --chown=airflow:root pyproject.toml /tmp/ttc-delay-risk/pyproject.toml
+COPY --chown=airflow:root src /tmp/ttc-delay-risk/src
+
+USER airflow
+RUN /home/airflow/ttc-venv/bin/pip install --no-cache-dir --no-deps /tmp/ttc-delay-risk

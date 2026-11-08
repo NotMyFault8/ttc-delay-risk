@@ -1,0 +1,1056 @@
+{
+  "by_year": {
+    "2023": 50025,
+    "2025": 61787,
+    "2026": 43441
+  },
+  "code_sha256": "5a0560514056e00e5b87bdd513c40d9b25773fc0235415d2dc647638fc5fd77b",
+  "created_at": "2026-10-27T07:59:06.303586+00:00",
+  "data_sha256": "bc7944197e1120487a9964677350f946c71df6f4ad635f71f9be3258f01bca90",
+  "dependencies": {
+    "catboost": "1.2.8",
+    "numpy": "1.26.4",
+    "scikit-learn": "1.7.2"
+  },
+  "evaluation_scope": "Retrospective event-date holdout on current snapshots; historical publication times unknown, not an as-of operational backtest",
+  "event_date_end": "2026-09-30",
+  "event_date_start": "2023-01-01",
+  "features": [
+    "route_id",
+    "hour",
+    "weekday",
+    "month",
+    "hour_sin",
+    "hour_cos"
+  ],
+  "limitations": [
+    "Conditional on a reported incident; not incident occurrence, punctuality or passenger risk",
+    "Historical route validity and schedule exposure are unknown",
+    "2023 lacks December; 2024 absent; source schemas and reporting mix changed",
+    "Zero recorded delay is below threshold, not proof of on-time service",
+    "Exact duplicate context is collapsed; indistinguishable genuine reports may be merged",
+    "No realtime inputs; no external calibration or prospective validation yet"
+  ],
+  "mode": "real_data_conditional_severity_research",
+  "prospective_fit_rows": 105228,
+  "rows": 155253,
+  "seed": 42,
+  "selected": "catboost:since2025",
+  "selection_policy": "Minimum validation Brier across model/cohort candidates; test never selects a model",
+  "sources": [
+    {
+      "accepted": 50025,
+      "duplicates": 186,
+      "name": "2023.xlsx.zip",
+      "quarantine_reasons": {
+        "ambiguous_or_nonexistent_local_time": 3,
+        "invalid_route": 699
+      },
+      "raw_rows": 50913,
+      "sha256": "df94ecfc4d0c7aff7f3824b3b5cd76e5cbbb41676f1a67c23b8ff65a8ddd6f4e"
+    },
+    {
+      "accepted": 105228,
+      "duplicates": 302,
+      "name": "source.csv",
+      "quarantine_reasons": {
+        "ambiguous_or_nonexistent_local_time": 2,
+        "invalid_route": 1817
+      },
+      "raw_rows": 107349,
+      "sha256": "2bc395f3c0db59010daf42bd97dcc6f2c3006c3646f58cf2d2cd42cba6e1b1f3"
+    }
+  ],
+  "target": "P(recorded Min Delay >= threshold | a TTC incident record, route, local calendar)",
+  "test": {
+    "average_precision": 0.7889687228245743,
+    "brier": 0.16812390263677895,
+    "calibration": [
+      {
+        "count": 4957,
+        "lower": 0.0,
+        "observed": 0.08351825701028848,
+        "predicted": 0.06910435968883298
+      },
+      {
+        "count": 3336,
+        "lower": 0.1,
+        "observed": 0.14928057553956833,
+        "predicted": 0.1471288696730417
+      },
+      {
+        "count": 2781,
+        "lower": 0.2,
+        "observed": 0.3480762315713772,
+        "predicted": 0.24595195810502826
+      },
+      {
+        "count": 2211,
+        "lower": 0.3,
+        "observed": 0.34554500226142015,
+        "predicted": 0.34902791737990796
+      },
+      {
+        "count": 2679,
+        "lower": 0.4,
+        "observed": 0.45128779395296753,
+        "predicted": 0.45153129560396016
+      },
+      {
+        "count": 2420,
+        "lower": 0.5,
+        "observed": 0.5739669421487603,
+        "predicted": 0.5452925402024149
+      },
+      {
+        "count": 2155,
+        "lower": 0.6,
+        "observed": 0.6918793503480278,
+        "predicted": 0.6509921090938928
+      },
+      {
+        "count": 3178,
+        "lower": 0.7,
+        "observed": 0.7853996224040277,
+        "predicted": 0.7493250648102432
+      },
+      {
+        "count": 3551,
+        "lower": 0.8,
+        "observed": 0.8687693607434526,
+        "predicted": 0.8548711657848558
+      },
+      {
+        "count": 345,
+        "lower": 0.9,
+        "observed": 0.9101449275362319,
+        "predicted": 0.9092666285298207
+      }
+    ],
+    "log_loss": 0.5094647667275003,
+    "positive_rate": 0.45732082714663386,
+    "roc_auc": 0.829157441149311,
+    "rows": 27613
+  },
+  "test_baseline": {
+    "average_precision": 0.784254432937875,
+    "brier": 0.16988356185054626,
+    "calibration": [
+      {
+        "count": 4436,
+        "lower": 0.0,
+        "observed": 0.08070333633904418,
+        "predicted": 0.06625190178586497
+      },
+      {
+        "count": 3796,
+        "lower": 0.1,
+        "observed": 0.14989462592202318,
+        "predicted": 0.14089070376316465
+      },
+      {
+        "count": 3091,
+        "lower": 0.2,
+        "observed": 0.3251374959560013,
+        "predicted": 0.25340522767917395
+      },
+      {
+        "count": 2306,
+        "lower": 0.3,
+        "observed": 0.3612315698178664,
+        "predicted": 0.34651052314191183
+      },
+      {
+        "count": 2413,
+        "lower": 0.4,
+        "observed": 0.46829672606713635,
+        "predicted": 0.44915986847873596
+      },
+      {
+        "count": 2807,
+        "lower": 0.5,
+        "observed": 0.6002850017812611,
+        "predicted": 0.5492471326565801
+      },
+      {
+        "count": 3063,
+        "lower": 0.6,
+        "observed": 0.732288605941887,
+        "predicted": 0.6520338877133406
+      },
+      {
+        "count": 3268,
+        "lower": 0.7,
+        "observed": 0.8203794369645043,
+        "predicted": 0.7522072977393213
+      },
+      {
+        "count": 2322,
+        "lower": 0.8,
+        "observed": 0.8712316968130922,
+        "predicted": 0.8386922359154483
+      },
+      {
+        "count": 111,
+        "lower": 0.9,
+        "observed": 0.9099099099099099,
+        "predicted": 0.9176367121890316
+      }
+    ],
+    "log_loss": 0.5145718867691699,
+    "positive_rate": 0.45732082714663386,
+    "roc_auc": 0.8277004250581487,
+    "rows": 27613
+  },
+  "test_by_month": {
+    "2026-04": {
+      "average_precision": 0.7894272347469053,
+      "brier": 0.15961642758771927,
+      "calibration": [
+        {
+          "count": 900,
+          "lower": 0.0,
+          "observed": 0.06555555555555556,
+          "predicted": 0.06982379632640445
+        },
+        {
+          "count": 567,
+          "lower": 0.1,
+          "observed": 0.12522045855379188,
+          "predicted": 0.14518915548115477
+        },
+        {
+          "count": 515,
+          "lower": 0.2,
+          "observed": 0.27184466019417475,
+          "predicted": 0.2481622213867701
+        },
+        {
+          "count": 406,
+          "lower": 0.3,
+          "observed": 0.3620689655172414,
+          "predicted": 0.34899179785205636
+        },
+        {
+          "count": 473,
+          "lower": 0.4,
+          "observed": 0.427061310782241,
+          "predicted": 0.44947271763888563
+        },
+        {
+          "count": 410,
+          "lower": 0.5,
+          "observed": 0.6097560975609756,
+          "predicted": 0.5454273048389274
+        },
+        {
+          "count": 360,
+          "lower": 0.6,
+          "observed": 0.7111111111111111,
+          "predicted": 0.6472665263324728
+        },
+        {
+          "count": 540,
+          "lower": 0.7,
+          "observed": 0.7685185185185185,
+          "predicted": 0.7509443230146156
+        },
+        {
+          "count": 644,
+          "lower": 0.8,
+          "observed": 0.8633540372670807,
+          "predicted": 0.8550071064254332
+        },
+        {
+          "count": 55,
+          "lower": 0.9,
+          "observed": 0.9090909090909091,
+          "predicted": 0.9095723075774163
+        }
+      ],
+      "log_loss": 0.4877316818971406,
+      "positive_rate": 0.4406570841889117,
+      "roc_auc": 0.8433838764330182,
+      "rows": 4870
+    },
+    "2026-05": {
+      "average_precision": 0.7993815866417876,
+      "brier": 0.16119956653022363,
+      "calibration": [
+        {
+          "count": 853,
+          "lower": 0.0,
+          "observed": 0.07502930832356389,
+          "predicted": 0.06897547711326944
+        },
+        {
+          "count": 574,
+          "lower": 0.1,
+          "observed": 0.10801393728222997,
+          "predicted": 0.14614735698186002
+        },
+        {
+          "count": 459,
+          "lower": 0.2,
+          "observed": 0.35947712418300654,
+          "predicted": 0.24790962431307575
+        },
+        {
+          "count": 354,
+          "lower": 0.3,
+          "observed": 0.3474576271186441,
+          "predicted": 0.34777177927119685
+        },
+        {
+          "count": 453,
+          "lower": 0.4,
+          "observed": 0.4083885209713024,
+          "predicted": 0.45109161354676286
+        },
+        {
+          "count": 420,
+          "lower": 0.5,
+          "observed": 0.5619047619047619,
+          "predicted": 0.542813553035009
+        },
+        {
+          "count": 362,
+          "lower": 0.6,
+          "observed": 0.6823204419889503,
+          "predicted": 0.650555978725085
+        },
+        {
+          "count": 600,
+          "lower": 0.7,
+          "observed": 0.7983333333333333,
+          "predicted": 0.7486156449509389
+        },
+        {
+          "count": 641,
+          "lower": 0.8,
+          "observed": 0.8767550702028081,
+          "predicted": 0.8578530255335792
+        },
+        {
+          "count": 77,
+          "lower": 0.9,
+          "observed": 0.8961038961038961,
+          "predicted": 0.9098294773842938
+        }
+      ],
+      "log_loss": 0.49196040945175185,
+      "positive_rate": 0.4573336115167953,
+      "roc_auc": 0.8418052994777415,
+      "rows": 4793
+    },
+    "2026-06": {
+      "average_precision": 0.7946171371344701,
+      "brier": 0.173197512089531,
+      "calibration": [
+        {
+          "count": 797,
+          "lower": 0.0,
+          "observed": 0.09661229611041405,
+          "predicted": 0.06684762630275207
+        },
+        {
+          "count": 562,
+          "lower": 0.1,
+          "observed": 0.18327402135231316,
+          "predicted": 0.14548298372398358
+        },
+        {
+          "count": 441,
+          "lower": 0.2,
+          "observed": 0.34467120181405897,
+          "predicted": 0.24274445499232922
+        },
+        {
+          "count": 383,
+          "lower": 0.3,
+          "observed": 0.35509138381201044,
+          "predicted": 0.3483876935323847
+        },
+        {
+          "count": 438,
+          "lower": 0.4,
+          "observed": 0.5045662100456622,
+          "predicted": 0.4540222991103815
+        },
+        {
+          "count": 356,
+          "lower": 0.5,
+          "observed": 0.6123595505617978,
+          "predicted": 0.545971202580529
+        },
+        {
+          "count": 364,
+          "lower": 0.6,
+          "observed": 0.6895604395604396,
+          "predicted": 0.6533390915428317
+        },
+        {
+          "count": 500,
+          "lower": 0.7,
+          "observed": 0.772,
+          "predicted": 0.7484457403427138
+        },
+        {
+          "count": 559,
+          "lower": 0.8,
+          "observed": 0.8855098389982111,
+          "predicted": 0.8524238185459383
+        },
+        {
+          "count": 40,
+          "lower": 0.9,
+          "observed": 0.9,
+          "predicted": 0.9078405710474149
+        }
+      ],
+      "log_loss": 0.5226212522146239,
+      "positive_rate": 0.46734234234234234,
+      "roc_auc": 0.8222582337807891,
+      "rows": 4440
+    },
+    "2026-07": {
+      "average_precision": 0.7965180529795719,
+      "brier": 0.17308606364771023,
+      "calibration": [
+        {
+          "count": 775,
+          "lower": 0.0,
+          "observed": 0.09419354838709677,
+          "predicted": 0.07076025404809116
+        },
+        {
+          "count": 505,
+          "lower": 0.1,
+          "observed": 0.16633663366336635,
+          "predicted": 0.15058765419529546
+        },
+        {
+          "count": 469,
+          "lower": 0.2,
+          "observed": 0.42217484008528783,
+          "predicted": 0.24812027091989344
+        },
+        {
+          "count": 321,
+          "lower": 0.3,
+          "observed": 0.35514018691588783,
+          "predicted": 0.3486101051660569
+        },
+        {
+          "count": 412,
+          "lower": 0.4,
+          "observed": 0.4077669902912621,
+          "predicted": 0.4502623503812694
+        },
+        {
+          "count": 388,
+          "lower": 0.5,
+          "observed": 0.5489690721649485,
+          "predicted": 0.5446506227755241
+        },
+        {
+          "count": 312,
+          "lower": 0.6,
+          "observed": 0.6858974358974359,
+          "predicted": 0.652645610092423
+        },
+        {
+          "count": 464,
+          "lower": 0.7,
+          "observed": 0.8125,
+          "predicted": 0.7497928270027756
+        },
+        {
+          "count": 543,
+          "lower": 0.8,
+          "observed": 0.8710865561694291,
+          "predicted": 0.8555588996866708
+        },
+        {
+          "count": 68,
+          "lower": 0.9,
+          "observed": 0.9558823529411765,
+          "predicted": 0.9087544350940562
+        }
+      ],
+      "log_loss": 0.521067681094635,
+      "positive_rate": 0.46488137185811607,
+      "roc_auc": 0.8216675665160214,
+      "rows": 4257
+    },
+    "2026-08": {
+      "average_precision": 0.7963996799794795,
+      "brier": 0.16555858679027252,
+      "calibration": [
+        {
+          "count": 711,
+          "lower": 0.0,
+          "observed": 0.08157524613220815,
+          "predicted": 0.070011577737542
+        },
+        {
+          "count": 501,
+          "lower": 0.1,
+          "observed": 0.1317365269461078,
+          "predicted": 0.1495386116230496
+        },
+        {
+          "count": 382,
+          "lower": 0.2,
+          "observed": 0.3481675392670157,
+          "predicted": 0.24755096994144415
+        },
+        {
+          "count": 348,
+          "lower": 0.3,
+          "observed": 0.28735632183908044,
+          "predicted": 0.35192671643966833
+        },
+        {
+          "count": 447,
+          "lower": 0.4,
+          "observed": 0.4720357941834452,
+          "predicted": 0.450718790249178
+        },
+        {
+          "count": 417,
+          "lower": 0.5,
+          "observed": 0.5683453237410072,
+          "predicted": 0.5457376348437619
+        },
+        {
+          "count": 323,
+          "lower": 0.6,
+          "observed": 0.6687306501547987,
+          "predicted": 0.6494425439061143
+        },
+        {
+          "count": 513,
+          "lower": 0.7,
+          "observed": 0.8109161793372319,
+          "predicted": 0.7526500054815339
+        },
+        {
+          "count": 558,
+          "lower": 0.8,
+          "observed": 0.8763440860215054,
+          "predicted": 0.8581108060077852
+        },
+        {
+          "count": 72,
+          "lower": 0.9,
+          "observed": 0.8611111111111112,
+          "predicted": 0.9102852219103522
+        }
+      ],
+      "log_loss": 0.50326792104274,
+      "positive_rate": 0.4653558052434457,
+      "roc_auc": 0.8341373768002057,
+      "rows": 4272
+    },
+    "2026-09": {
+      "average_precision": 0.759934395918164,
+      "brier": 0.17654149555991946,
+      "calibration": [
+        {
+          "count": 921,
+          "lower": 0.0,
+          "observed": 0.09011943539630836,
+          "predicted": 0.06837983223040806
+        },
+        {
+          "count": 627,
+          "lower": 0.1,
+          "observed": 0.17862838915470494,
+          "predicted": 0.14654550003064412
+        },
+        {
+          "count": 515,
+          "lower": 0.2,
+          "observed": 0.34951456310679613,
+          "predicted": 0.24158281880682791
+        },
+        {
+          "count": 399,
+          "lower": 0.3,
+          "observed": 0.3609022556390977,
+          "predicted": 0.3486015484582095
+        },
+        {
+          "count": 456,
+          "lower": 0.4,
+          "observed": 0.4868421052631579,
+          "predicted": 0.45365370599631627
+        },
+        {
+          "count": 429,
+          "lower": 0.5,
+          "observed": 0.5477855477855478,
+          "predicted": 0.5471754698036353
+        },
+        {
+          "count": 434,
+          "lower": 0.6,
+          "observed": 0.7073732718894009,
+          "predicted": 0.6524423501545308
+        },
+        {
+          "count": 561,
+          "lower": 0.7,
+          "observed": 0.7540106951871658,
+          "predicted": 0.7458815327198315
+        },
+        {
+          "count": 606,
+          "lower": 0.8,
+          "observed": 0.8415841584158416,
+          "predicted": 0.8502308860522015
+        },
+        {
+          "count": 33,
+          "lower": 0.9,
+          "observed": 0.9696969696969697,
+          "predicted": 0.908005447321269
+        }
+      ],
+      "log_loss": 0.5312280733502843,
+      "positive_rate": 0.45131499698855654,
+      "roc_auc": 0.8117913162311695,
+      "rows": 4981
+    }
+  },
+  "test_rows": 27613,
+  "test_start": "2026-04-01",
+  "threshold_minutes": 15,
+  "train_rows": 111812,
+  "validation": {
+    "baseline:combined": {
+      "average_precision": 0.7911536987716651,
+      "brier": 0.16521808931657736,
+      "calibration": [
+        {
+          "count": 2578,
+          "lower": 0.0,
+          "observed": 0.06089992242048099,
+          "predicted": 0.06481453934027459
+        },
+        {
+          "count": 2401,
+          "lower": 0.1,
+          "observed": 0.1790920449812578,
+          "predicted": 0.15056940802033134
+        },
+        {
+          "count": 1838,
+          "lower": 0.2,
+          "observed": 0.2578890097932535,
+          "predicted": 0.24308083772508915
+        },
+        {
+          "count": 1431,
+          "lower": 0.3,
+          "observed": 0.36547868623340324,
+          "predicted": 0.35257037438356015
+        },
+        {
+          "count": 1508,
+          "lower": 0.4,
+          "observed": 0.5338196286472149,
+          "predicted": 0.44197011033258304
+        },
+        {
+          "count": 1387,
+          "lower": 0.5,
+          "observed": 0.6661860129776496,
+          "predicted": 0.5530423975371833
+        },
+        {
+          "count": 1296,
+          "lower": 0.6,
+          "observed": 0.7214506172839507,
+          "predicted": 0.6504304372444005
+        },
+        {
+          "count": 1802,
+          "lower": 0.7,
+          "observed": 0.8168701442841287,
+          "predicted": 0.7510976348192634
+        },
+        {
+          "count": 1470,
+          "lower": 0.8,
+          "observed": 0.8680272108843538,
+          "predicted": 0.8380812126349474
+        },
+        {
+          "count": 117,
+          "lower": 0.9,
+          "observed": 0.9572649572649573,
+          "predicted": 0.9118491782709893
+        }
+      ],
+      "log_loss": 0.502953318095553,
+      "positive_rate": 0.4490775840283043,
+      "roc_auc": 0.8369757167269855,
+      "rows": 15828
+    },
+    "baseline:since2025": {
+      "average_precision": 0.7871328322283789,
+      "brier": 0.16531776331748163,
+      "calibration": [
+        {
+          "count": 2391,
+          "lower": 0.0,
+          "observed": 0.060644081974069425,
+          "predicted": 0.06763464721284491
+        },
+        {
+          "count": 2382,
+          "lower": 0.1,
+          "observed": 0.1486146095717884,
+          "predicted": 0.14251469749215379
+        },
+        {
+          "count": 1844,
+          "lower": 0.2,
+          "observed": 0.2554229934924078,
+          "predicted": 0.24767117658424617
+        },
+        {
+          "count": 1544,
+          "lower": 0.3,
+          "observed": 0.3646373056994819,
+          "predicted": 0.34851060601349493
+        },
+        {
+          "count": 1516,
+          "lower": 0.4,
+          "observed": 0.5389182058047494,
+          "predicted": 0.44783973952913847
+        },
+        {
+          "count": 1450,
+          "lower": 0.5,
+          "observed": 0.6724137931034483,
+          "predicted": 0.5489458080634683
+        },
+        {
+          "count": 1682,
+          "lower": 0.6,
+          "observed": 0.7336504161712247,
+          "predicted": 0.6492956490888764
+        },
+        {
+          "count": 1926,
+          "lower": 0.7,
+          "observed": 0.8208722741433022,
+          "predicted": 0.7485668095578731
+        },
+        {
+          "count": 1059,
+          "lower": 0.8,
+          "observed": 0.8838526912181303,
+          "predicted": 0.8355629083456397
+        },
+        {
+          "count": 34,
+          "lower": 0.9,
+          "observed": 0.9411764705882353,
+          "predicted": 0.9075582904658578
+        }
+      ],
+      "log_loss": 0.5030989785021247,
+      "positive_rate": 0.4490775840283043,
+      "roc_auc": 0.8383081651763358,
+      "rows": 15828
+    },
+    "catboost:combined": {
+      "average_precision": 0.7894578707650584,
+      "brier": 0.16658627558554281,
+      "calibration": [
+        {
+          "count": 2368,
+          "lower": 0.0,
+          "observed": 0.07221283783783784,
+          "predicted": 0.0695382621565467
+        },
+        {
+          "count": 2671,
+          "lower": 0.1,
+          "observed": 0.16847622613253463,
+          "predicted": 0.14754380388537594
+        },
+        {
+          "count": 1668,
+          "lower": 0.2,
+          "observed": 0.25,
+          "predicted": 0.24939580666538488
+        },
+        {
+          "count": 1424,
+          "lower": 0.3,
+          "observed": 0.4318820224719101,
+          "predicted": 0.35405029368606317
+        },
+        {
+          "count": 1718,
+          "lower": 0.4,
+          "observed": 0.49825378346915017,
+          "predicted": 0.4451937205485145
+        },
+        {
+          "count": 1116,
+          "lower": 0.5,
+          "observed": 0.5806451612903226,
+          "predicted": 0.5493067488075771
+        },
+        {
+          "count": 1156,
+          "lower": 0.6,
+          "observed": 0.7378892733564014,
+          "predicted": 0.653299529181402
+        },
+        {
+          "count": 1655,
+          "lower": 0.7,
+          "observed": 0.7824773413897281,
+          "predicted": 0.7554619534501763
+        },
+        {
+          "count": 1984,
+          "lower": 0.8,
+          "observed": 0.8770161290322581,
+          "predicted": 0.8509221251809896
+        },
+        {
+          "count": 68,
+          "lower": 0.9,
+          "observed": 0.9264705882352942,
+          "predicted": 0.904873516449315
+        }
+      ],
+      "log_loss": 0.5057074430832489,
+      "positive_rate": 0.4490775840283043,
+      "roc_auc": 0.8322864662119953,
+      "rows": 15828
+    },
+    "catboost:since2025": {
+      "average_precision": 0.791353862538434,
+      "brier": 0.16412324184175475,
+      "calibration": [
+        {
+          "count": 2704,
+          "lower": 0.0,
+          "observed": 0.07359467455621302,
+          "predicted": 0.07026320680558727
+        },
+        {
+          "count": 2239,
+          "lower": 0.1,
+          "observed": 0.15989280928986155,
+          "predicted": 0.14635365577359802
+        },
+        {
+          "count": 1668,
+          "lower": 0.2,
+          "observed": 0.2547961630695444,
+          "predicted": 0.24363890458100737
+        },
+        {
+          "count": 1153,
+          "lower": 0.3,
+          "observed": 0.39809193408499566,
+          "predicted": 0.35012423809259074
+        },
+        {
+          "count": 1576,
+          "lower": 0.4,
+          "observed": 0.5063451776649747,
+          "predicted": 0.4540378577878352
+        },
+        {
+          "count": 1480,
+          "lower": 0.5,
+          "observed": 0.5587837837837838,
+          "predicted": 0.5469571826822763
+        },
+        {
+          "count": 1082,
+          "lower": 0.6,
+          "observed": 0.7236598890942699,
+          "predicted": 0.6514064784308005
+        },
+        {
+          "count": 1661,
+          "lower": 0.7,
+          "observed": 0.7718242022877785,
+          "predicted": 0.7491866460842893
+        },
+        {
+          "count": 2051,
+          "lower": 0.8,
+          "observed": 0.8703071672354948,
+          "predicted": 0.8550719528637436
+        },
+        {
+          "count": 214,
+          "lower": 0.9,
+          "observed": 0.897196261682243,
+          "predicted": 0.9076450196716164
+        }
+      ],
+      "log_loss": 0.4992048837405245,
+      "positive_rate": 0.4490775840283043,
+      "roc_auc": 0.8360030999442417,
+      "rows": 15828
+    },
+    "logistic:combined": {
+      "average_precision": 0.7745943015642401,
+      "brier": 0.16961972850629825,
+      "calibration": [
+        {
+          "count": 2416,
+          "lower": 0.0,
+          "observed": 0.06456953642384106,
+          "predicted": 0.06632438157700264
+        },
+        {
+          "count": 2572,
+          "lower": 0.1,
+          "observed": 0.18662519440124417,
+          "predicted": 0.15051656403187072
+        },
+        {
+          "count": 1972,
+          "lower": 0.2,
+          "observed": 0.27281947261663286,
+          "predicted": 0.24756767761020115
+        },
+        {
+          "count": 1381,
+          "lower": 0.3,
+          "observed": 0.4511223750905141,
+          "predicted": 0.34905317225831434
+        },
+        {
+          "count": 1445,
+          "lower": 0.4,
+          "observed": 0.4844290657439446,
+          "predicted": 0.44917162647511744
+        },
+        {
+          "count": 1132,
+          "lower": 0.5,
+          "observed": 0.6024734982332155,
+          "predicted": 0.551942235945522
+        },
+        {
+          "count": 1310,
+          "lower": 0.6,
+          "observed": 0.7106870229007634,
+          "predicted": 0.6520778540946368
+        },
+        {
+          "count": 1456,
+          "lower": 0.7,
+          "observed": 0.7843406593406593,
+          "predicted": 0.7521284504055424
+        },
+        {
+          "count": 1719,
+          "lower": 0.8,
+          "observed": 0.8714368819080861,
+          "predicted": 0.8472487643574143
+        },
+        {
+          "count": 425,
+          "lower": 0.9,
+          "observed": 0.8423529411764706,
+          "predicted": 0.9224697463890679
+        }
+      ],
+      "log_loss": 0.5132641857384516,
+      "positive_rate": 0.4490775840283043,
+      "roc_auc": 0.8272057779579024,
+      "rows": 15828
+    },
+    "logistic:since2025": {
+      "average_precision": 0.7807997216862458,
+      "brier": 0.16702755321999424,
+      "calibration": [
+        {
+          "count": 2537,
+          "lower": 0.0,
+          "observed": 0.06661411115490737,
+          "predicted": 0.0670989968639239
+        },
+        {
+          "count": 2312,
+          "lower": 0.1,
+          "observed": 0.1695501730103806,
+          "predicted": 0.14502522395728465
+        },
+        {
+          "count": 1848,
+          "lower": 0.2,
+          "observed": 0.2591991341991342,
+          "predicted": 0.24879790798300588
+        },
+        {
+          "count": 1266,
+          "lower": 0.3,
+          "observed": 0.4020537124802528,
+          "predicted": 0.34926495285509324
+        },
+        {
+          "count": 1505,
+          "lower": 0.4,
+          "observed": 0.5116279069767442,
+          "predicted": 0.4502486488834023
+        },
+        {
+          "count": 1340,
+          "lower": 0.5,
+          "observed": 0.5895522388059702,
+          "predicted": 0.5480239273217141
+        },
+        {
+          "count": 1324,
+          "lower": 0.6,
+          "observed": 0.7099697885196374,
+          "predicted": 0.6517682038904108
+        },
+        {
+          "count": 1532,
+          "lower": 0.7,
+          "observed": 0.7761096605744126,
+          "predicted": 0.7487151925556277
+        },
+        {
+          "count": 1696,
+          "lower": 0.8,
+          "observed": 0.8614386792452831,
+          "predicted": 0.8500139001186835
+        },
+        {
+          "count": 468,
+          "lower": 0.9,
+          "observed": 0.8739316239316239,
+          "predicted": 0.9227830844808061
+        }
+      ],
+      "log_loss": 0.5063769529607135,
+      "positive_rate": 0.4490775840283043,
+      "roc_auc": 0.8315422472675833,
+      "rows": 15828
+    }
+  },
+  "validation_rows": 15828,
+  "validation_start": "2026-01-01",
+  "version": "severity-1a2f096613d5a5ba-20261027T075906503244"
+}

@@ -35,3 +35,40 @@ jobs:
       - run: ttc-pipeline demo --root data/ci-postgres
         env:
           DATABASE_URL: postgresql+psycopg2://ttc:ci-only-password@localhost:5432/ttc
+  airflow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      COMPOSE_PROJECT_NAME: ttc-airflow-ci
+      AIRFLOW_POSTGRES_PASSWORD: ciOnlyMetadataPassword
+      AIRFLOW_API_SECRET_KEY: ci-only-api-secret-not-for-deployment-0123456789abcdef0123456789abcdef
+      AIRFLOW_JWT_SECRET: ci-only-jwt-secret-not-for-deployment-abcdef0123456789abcdef0123456789
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate required secrets and Compose inheritance
+        run: python -m unittest discover -s tests -p test_airflow_compose.py -v
+      - name: Build the Airflow 3 image
+        run: docker compose -f compose.airflow.yaml build airflow-scheduler
+      - name: Test real DAG imports, dates, and publication commands
+        run: >-
+          docker compose -f compose.airflow.yaml run --rm --no-deps
+          -e CONNECTION_CHECK_MAX_COUNT=0
+          -v "$PWD/tests/airflow:/tmp/airflow-tests:ro"
+          airflow-scheduler python -m unittest discover -s /tmp/airflow-tests -v
+      - name: Start an isolated Airflow stack
+        run: docker compose -f compose.airflow.yaml up -d --wait --wait-timeout 240 airflow-scheduler airflow-dag-processor airflow-triggerer
+      - name: Check signed log requests and persistence across scheduler replacement
+        run: |
+          docker compose -f compose.airflow.yaml exec -T airflow-scheduler python - write < scripts/check_airflow_logs.py
+          docker compose -f compose.airflow.yaml exec -T airflow-apiserver python - read < scripts/check_airflow_logs.py
+          docker compose -f compose.airflow.yaml up -d --no-deps --force-recreate airflow-scheduler
+          docker compose -f compose.airflow.yaml exec -T airflow-apiserver python - read < scripts/check_airflow_logs.py
+      - name: Collect diagnostics
+        if: failure()
+        run: docker compose -f compose.airflow.yaml logs --no-color --tail=150
+      - name: Remove the isolated CI stack
+        if: always()
+        run: docker compose -f compose.airflow.yaml down --volumes --remove-orphans

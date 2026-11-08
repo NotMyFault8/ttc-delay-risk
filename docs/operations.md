@@ -2,7 +2,8 @@
 
 ## Verified locally
 
-- 18 tests passed with numerical runtime warnings treated as errors.
+- 26 application and Compose tests passed with numerical runtime warnings treated as errors; five additional DAG tests passed inside the Airflow 3.1.5 image.
+- Signed scheduler-log requests returned HTTP 200 before and after scheduler replacement; unsigned requests were rejected, and the marker remained in the shared log volume.
 - Docker image built; PostgreSQL 16.6 became healthy; FastAPI served the published demo batch.
 - The same synthetic batch ID was produced by Python 3.10 locally and Python 3.12 in the container.
 - The dashboard displayed 10 ranked windows from a published batch containing 12 predictions.
@@ -46,18 +47,61 @@ Backfills must use a model trained before their earliest target date. Recompute 
 
 ## Scheduling and monitoring
 
-The production DAG at `airflow/dags/ttc_delay_risk_daily.py` runs at 03:30 America/Toronto, checks the executable, dataset, release pointer and database configuration, then atomically publishes that Toronto service date. It disables catchup and limits concurrency to one active run. For a manual historical run, set its Airflow logical date to midnight Toronto time on the desired service date; the DAG reads that logical date directly instead of the inferred interval end. The CLI run ledger remains the system of record for the batch result.
+`Dockerfile.airflow`, `compose.airflow.yaml` and `dags/` form one Airflow **3.1.5** deployment. The existing `ttc_delay_risk_pipeline` DAG retains its 03:30 Toronto ingestion schedule and explicit training/prediction operations, including conditional severity. `ttc_demo` remains a manual synthetic demonstration. The separate `ttc_delay_risk_daily` DAG publishes the legacy service-window model; conditional-severity scenarios are not published as incidence probabilities.
 
-For a local deployment, set the passwords and generate one long random `AIRFLOW_WEBSERVER_SECRET_KEY` in `.env`; the same key is shared by the webserver and scheduler so task logs can be retrieved. Place the reviewed rolling dataset at `data/production-windows.json` and release a real model before starting Airflow:
+Copy `.env.example` to `.env` if it does not exist. Set `AIRFLOW_POSTGRES_PASSWORD` to a local alphanumeric password. Generate two independent random values with `openssl rand -hex 32`, and set `AIRFLOW_API_SECRET_KEY` and `AIRFLOW_JWT_SECRET`. Keep these values stable across container replacements and supply the same `.env` to all Airflow services. Compose rejects missing or empty secrets. The API secret signs log requests; the JWT secret authenticates Airflow 3 execution API requests. Neither value belongs in Git or an image.
 
 ```sh
-docker compose -f compose.yaml -f compose.airflow.yaml up airflow-init
-docker compose -f compose.yaml -f compose.airflow.yaml up -d airflow-webserver airflow-scheduler api
+docker compose -f compose.airflow.yaml config --quiet
+docker compose -f compose.airflow.yaml up -d --build
+docker compose -f compose.airflow.yaml exec airflow-apiserver \
+  airflow users create --username admin --firstname Air --lastname Flow \
+  --role Admin --email admin@example.com
+# The user-creation command prompts for a password; no default admin password is configured.
 ```
 
-The Airflow UI binds to `127.0.0.1:8080`. Create the first UI user with the Airflow CLI; credentials are never committed. Worker processes receive the prediction database URL through the environment. Scheduled runs use Airflow's data interval in `America/Toronto`, including DST transitions, rather than the container clock.
+The UI binds to `127.0.0.1:8080`. Initialization must complete its database migration successfully before services start. The `airflow-data` volume retains inputs and artifacts. All Airflow services share the `airflow-logs` volume at `/opt/airflow/logs`, so completed-task logs survive scheduler replacement. Keep host clocks synchronized for signed log requests. These settings support the documented single-machine deployment, not a high-availability production service.
 
-The templates under `deploy/` remain a lightweight systemd alternative. Before installing them, create the service user, install the project in `/opt/ttc-delay-risk`, supply the reviewed rolling dataset and release a real model. Neither scheduler fetches new coverage evidence automatically.
+When upgrading an existing Airflow 3 deployment, retain its Compose project name and metadata database password (changing `POSTGRES_PASSWORD` does not rotate a password in an existing database volume). Replace the former local signing-key placeholders and reset any previously created `admin`/`admin` UI credential. When moving from the old PR's Airflow 2 stack, start a separate Compose project and fresh metadata volume, or follow Airflow's reviewed database upgrade procedure; do not silently reuse the same `airflow-postgres` volume across major versions. Rename the old `.env` variable `AIRFLOW_WEBSERVER_SECRET_KEY` to `AIRFLOW_API_SECRET_KEY` and add the independent JWT secret. The old `airflow/Dockerfile` and `airflow/dags/` layout is no longer used.
+
+### Enable daily publication
+
+The daily DAG is initially **paused**, disables catchup, permits one active run, retries twice and limits each task to two hours. It checks the executable, dataset, release pointer and publication database URL before invoking the existing atomic `ttc-pipeline predict --publish` path. The CLI run ledger remains the batch result record.
+
+Before unpausing, place the reviewed rolling dataset at `/opt/airflow/project/data/runtime/production-windows.json` in the shared `airflow-data` volume, and train/review/release the real service-window model under `/opt/airflow/project/data/runtime/registry`. Explicitly set `TTC_PUBLISH_DATABASE_URL` in `.env`. For the application PostgreSQL service from `compose.yaml`, use `postgresql+psycopg2://ttc:YOUR_POSTGRES_PASSWORD@db:5432/ttc` and start the combined deployment:
+
+```sh
+docker compose -f compose.yaml -f compose.airflow.yaml up -d --build
+# After verifying the dataset, release and publication database:
+docker compose -f compose.yaml -f compose.airflow.yaml exec airflow-scheduler \
+  airflow dags unpause ttc_delay_risk_daily
+```
+
+`TTC_PUBLISH_DATABASE_URL` is used only by the daily publisher; ingestion, demo and existing manual workflows retain their own storage behavior. Stop the systemd publication timer before enabling this DAG, and avoid manual publishers for the same database/date. The ingestion DAG does not generate the reviewed service-window dataset or release a model automatically.
+
+Scheduled publications select the Toronto date of `data_interval_end`, including DST transitions. For a manual historical run, supply midnight Toronto time as its logical date; the manual path uses that date instead of the inferred interval end:
+
+```sh
+docker compose -f compose.airflow.yaml exec airflow-scheduler \
+  airflow dags trigger --logical-date '2025-07-01T00:00:00-04:00' ttc_delay_risk_daily
+```
+
+A manual run without a logical date fails instead of silently selecting another service date. The model must predate the historical target, and triggering this DAG explicitly publishes the selected date.
+
+### Airflow verification
+
+Run `python -m unittest discover -s tests -p test_airflow_compose.py -v` for required-secret, inheritance and persistent-volume checks. The `airflow` CI job builds the actual image, imports all DAGs, verifies scheduled/manual dates across DST, executes the publisher command against a recording stub, and checks signed log reads before and after scheduler replacement. It also verifies that unsigned requests are rejected. The tests run in an isolated Compose project and never trigger publication against real data.
+
+For the log checks in an isolated local test project after startup:
+
+```sh
+docker compose -f compose.airflow.yaml exec -T airflow-scheduler python - write < scripts/check_airflow_logs.py
+docker compose -f compose.airflow.yaml exec -T airflow-apiserver python - read < scripts/check_airflow_logs.py
+docker compose -f compose.airflow.yaml up -d --no-deps --force-recreate airflow-scheduler
+docker compose -f compose.airflow.yaml exec -T airflow-apiserver python - read < scripts/check_airflow_logs.py
+```
+
+The templates under `deploy/` remain a lightweight systemd alternative. They require a service user, project installation, reviewed dataset and released model, and do not fetch coverage evidence automatically.
 
 The `runs` table stores success/failure, elapsed time and error type. Inspect it alongside `batches` and `current_batches`. Monitor `/health` for the process and `/ready` for current production predictions. The source audit reports schema, blank counts, duplicate candidates and quarantine reasons. Model reports contain daily performance, calibration bins and per-route breakdowns. Automated drift alarms and a hosted monitoring service are not implemented.
 
@@ -69,7 +113,7 @@ Historical observations older than 60 days at prediction time produce `unavailab
 - Failed batch validation: current publication remains intact; fix inputs and rerun.
 - Corrupt model artifact: predictions expose `degraded` fallback. Restore the trusted artifact or release an earlier version.
 - Roll back: `ttc-pipeline rollback --version PREVIOUS_VERSION`, then explicitly republish the required dates. Changing the model pointer alone does not rewrite predictions.
-- Stop local services: `docker compose down`. Do not add `--volumes` unless intentionally removing the stored database.
+- Stop the combined deployment: `docker compose -f compose.yaml -f compose.airflow.yaml down` (use only the Airflow file for the standalone stack). Keep the same project name. Do not add `--volumes` unless intentionally removing stored databases, artifacts and task logs.
 
 ## API
 

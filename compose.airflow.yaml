@@ -1,67 +1,106 @@
 x-airflow-common: &airflow-common
+  image: ttc-airflow:3.1.5
   build:
     context: .
-    dockerfile: airflow/Dockerfile
-  environment: &airflow-environment
+    dockerfile: Dockerfile.airflow
+  environment: &airflow-env
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-apiserver:8080/execution/
+    AIRFLOW__CORE__HOSTNAME_CALLABLE: airflow.utils.net.get_host_ip_address
+    AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_JWT_SECRET:?Set AIRFLOW_JWT_SECRET in .env}
+    AIRFLOW__API__SECRET_KEY: ${AIRFLOW_API_SECRET_KEY:?Set AIRFLOW_API_SECRET_KEY in .env}
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${AIRFLOW_POSTGRES_PASSWORD:?Set AIRFLOW_POSTGRES_PASSWORD in .env}@postgres/airflow
     AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${AIRFLOW_POSTGRES_PASSWORD:?Set AIRFLOW_POSTGRES_PASSWORD in .env}@airflow-db:5432/airflow
-    AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_WEBSERVER_SECRET_KEY:?Set AIRFLOW_WEBSERVER_SECRET_KEY in .env}
-    DATABASE_URL: postgresql+psycopg2://ttc:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/ttc
-    TTC_PROJECT_ROOT: /opt/ttc-delay-risk
-    TTC_DATA_ROOT: /opt/ttc-delay-risk/data
-    TTC_DATASET: /opt/ttc-delay-risk/data/production-windows.json
+    AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
+    # Only the daily publisher uses this URL; ingestion/demo retain their own storage.
+    TTC_PUBLISH_DATABASE_URL: ${TTC_PUBLISH_DATABASE_URL:-}
   volumes:
-    - ./data:/opt/ttc-delay-risk/data
-  depends_on:
-    airflow-db:
-      condition: service_healthy
-    db:
-      condition: service_healthy
+    - ./dags:/opt/airflow/dags:ro
+    - ./src:/opt/airflow/project/src:ro
+    - ./pyproject.toml:/opt/airflow/project/pyproject.toml:ro
+    - airflow-data:/opt/airflow/project/data
+    - airflow-logs:/opt/airflow/logs
   restart: unless-stopped
 
 services:
-  airflow-db:
-    image: postgres:16.6
+  postgres:
+    image: postgres:16
     environment:
-      POSTGRES_DB: airflow
       POSTGRES_USER: airflow
       POSTGRES_PASSWORD: ${AIRFLOW_POSTGRES_PASSWORD:?Set AIRFLOW_POSTGRES_PASSWORD in .env}
-    healthcheck:
-      test: [CMD-SHELL, "pg_isready -U airflow -d airflow"]
-      interval: 5s
-      retries: 12
+      POSTGRES_DB: airflow
     volumes:
       - airflow-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      retries: 12
+
+  airflow-data-init:
+    image: ttc-airflow:3.1.5
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    user: "0:0"
+    entrypoint: /bin/bash
+    command:
+      - -ec
+      - mkdir -p /opt/airflow/project/data /opt/airflow/logs && chown airflow:root /opt/airflow/project/data /opt/airflow/logs
+    volumes:
+      - airflow-data:/opt/airflow/project/data
+      - airflow-logs:/opt/airflow/logs
 
   airflow-init:
     <<: *airflow-common
     restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-data-init:
+        condition: service_completed_successfully
+    # Propagate migration failures; UI users are created explicitly by the operator.
     command: db migrate
 
-  airflow-webserver:
+  airflow-apiserver:
     <<: *airflow-common
-    command: webserver
-    ports: ["127.0.0.1:8080:8080"]
     depends_on:
-      airflow-db:
-        condition: service_healthy
-      db:
-        condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
+    command: api-server
+    ports:
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/version"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
   airflow-scheduler:
     <<: *airflow-common
-    command: scheduler
     depends_on:
-      airflow-db:
-        condition: service_healthy
-      db:
-        condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
+      airflow-apiserver:
+        condition: service_healthy
+    command: scheduler
+
+  airflow-dag-processor:
+    <<: *airflow-common
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    command: dag-processor
+
+  airflow-triggerer:
+    <<: *airflow-common
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+      airflow-apiserver:
+        condition: service_healthy
+    command: triggerer
 
 volumes:
   airflow-postgres:
-
+  airflow-data:
+  airflow-logs:

@@ -1,4 +1,4 @@
-FROM apache/airflow:3.1.5
+FROM apache/airflow:3.1.5-python3.12
 
 RUN python -m venv /home/airflow/ttc-venv
 

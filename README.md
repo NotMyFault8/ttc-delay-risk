@@ -54,7 +54,7 @@ The API binds to localhost. PostgreSQL stays on the private Compose network. Mod
 | Registry | Code/data hashes, dependencies, seed, metrics, versioned artifacts, manual release and rollback |
 | Batch serving | Idempotent staged batches, transactional publication, baseline fallback and explicit status |
 | API | Health, readiness, paginated predictions, risk ranking, model version and compact dashboard |
-| Operations | Run ledger, Docker/PostgreSQL, daily timer template, CI and recovery tests |
+| Operations | Run ledger, Docker/PostgreSQL, Airflow 3 ingestion and opt-in daily publication, CI and recovery tests |
 
 ## Architecture
 
@@ -102,7 +102,7 @@ The evidence file is a manual research attestation, not an automatic proof. Do n
 - No event record means **no recorded event**, not proof of punctual vehicles.
 - Historic features use only labels available at the prediction cutoff.
 - Current GTFS cannot establish historical service; missing coverage leaves labels unknown.
-- Python transformations, SQLAlchemy, a systemd timer template and a local Docker Airflow DAG are implemented. Airflow supports ingestion and explicit conditional-severity training/prediction operations. Its 03:30 Toronto scheduled runs default to ingestion.
+- Python transformations, SQLAlchemy, a systemd timer template and local Docker Airflow 3.1.5 are implemented. `ttc_delay_risk_pipeline` retains daily ingestion and explicit model operations. The separate `ttc_delay_risk_daily` DAG publishes reviewed service-window batches at 03:30 Toronto only after an operator prepares its inputs and unpauses it. See the [Airflow runbook](docs/operations.md#scheduling-and-monitoring).
 - Frequency-based GTFS requires explicit expansion and is rejected. The conditional-severity workflow reads historical XLSX and current CSV snapshots.
 - Cloud deployment, prospective real-data validation, a 14-day operating record and cloud cost measurement remain outstanding. No SLA or operational business improvement is claimed.
 
